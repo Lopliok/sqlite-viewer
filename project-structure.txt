@@ -1,0 +1,11 @@
+sqlite-manager/
+├── frontend/             # Vue 3 frontend
+│   ├── src/
+│   ├── public/
+│   └── Dockerfile
+├── backend/              # Node.js backend
+│   ├── src/
+│   ├── data/            # SQLite databases and password files
+│   └── Dockerfile
+├── docker-compose.yml
+└── README.md
