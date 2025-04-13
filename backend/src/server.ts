@@ -1,9 +1,18 @@
-const express = require('express');
-const sqlite3 = require('sqlite3');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+import express, { Request, Response, NextFunction } from 'express';
+import sqlite3 from 'sqlite3';
+import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+
+interface AuthenticatedRequest extends Request {
+    randomNum?: number;
+}
+
+interface UpdateData {
+    id: number;
+    changes: Record<string, any>;
+}
 
 const app = express();
 app.use(cors());
@@ -18,14 +27,13 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 // Authentication middleware
-const authenticateDB = async (req, res, next) => {
+const authenticateDB: any = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const { dbName, password } = req.body;
     const passwordFile = path.join(DATA_DIR, `${dbName}.txt`);
     const dbFile = path.join(DATA_DIR, `${dbName}.sqlite`);
 
     try {
         if (!fs.existsSync(passwordFile)) {
-            // INIT case - create password file with random number
             const randomNum = Math.floor(1000000000 + Math.random() * 9000000000);
             fs.writeFileSync(passwordFile, password);
             req.randomNum = randomNum;
@@ -43,7 +51,7 @@ const authenticateDB = async (req, res, next) => {
 };
 
 // Login endpoint
-app.post('/api/login', authenticateDB, (req, res) => {
+app.post('/api/login', authenticateDB, (req: AuthenticatedRequest, res: Response) => {
     const { dbName } = req.body;
     const dbFile = path.join(DATA_DIR, `${dbName}.sqlite`);
 
@@ -54,16 +62,16 @@ app.post('/api/login', authenticateDB, (req, res) => {
 
     res.json({ 
         success: true, 
-        randomNum: req.randomNum // Will be undefined if not INIT case
+        randomNum: req.randomNum
     });
 });
 
 // Get tables endpoint
-app.post('/api/tables', authenticateDB, (req, res) => {
+app.post('/api/tables', authenticateDB, (req: Request, res: Response) => {
     const { dbName } = req.body;
     const db = new sqlite3.Database(path.join(DATA_DIR, `${dbName}.sqlite`));
 
-    db.all("SELECT name FROM sqlite_master WHERE type='table'", [], (err, tables) => {
+    db.all("SELECT name FROM sqlite_master WHERE type='table'", [], (err, tables: any[]) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -74,7 +82,7 @@ app.post('/api/tables', authenticateDB, (req, res) => {
 });
 
 // Get table data endpoint
-app.post('/api/table-data', authenticateDB, (req, res) => {
+app.post('/api/table-data', authenticateDB, async (req: Request, res: Response) => {
     const { dbName, tableName } = req.body;
     const db = new sqlite3.Database(path.join(DATA_DIR, `${dbName}.sqlite`));
 
@@ -89,8 +97,8 @@ app.post('/api/table-data', authenticateDB, (req, res) => {
 });
 
 // Update table data endpoint
-app.post('/api/update-data', authenticateDB, (req, res) => {
-    const { dbName, tableName, updates } = req.body;
+app.post('/api/update-data', authenticateDB, (req: Request, res: Response) => {
+    const { dbName, tableName, updates }: { dbName: string; tableName: string; updates: UpdateData[] } = req.body;
     const db = new sqlite3.Database(path.join(DATA_DIR, `${dbName}.sqlite`));
 
     try {
@@ -117,14 +125,15 @@ app.post('/api/update-data', authenticateDB, (req, res) => {
                 res.json({ success: true });
             });
         });
-    } catch (error) {
+    } catch (error: any) {
         db.run('ROLLBACK');
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error?.message });
     } finally {
         db.close();
     }
 });
 
+// Start the server fdsafsdf dsf
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

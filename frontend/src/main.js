@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import Vue3ExcelEditor from "vue3-excel-editor";
+
 import './index.css'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+app.use(Vue3ExcelEditor)
+
+app.mount('#app')
