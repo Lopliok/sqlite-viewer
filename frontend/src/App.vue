@@ -58,6 +58,12 @@
           </button>
           <h3 class="text-lg">Table: {{ selectedTable }}</h3>
         </div>
+        <button
+          @click="printData()"
+          class="mb-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Refresh Table
+        </button>
 
         <!-- <vue3-excel-editor
           v-if="tableData.length"
@@ -65,43 +71,14 @@
           :columns="tableColumns"
           @change="handleDataChange"
         /> -->
-        <vue-excel-editor v-model="tableData">
+        <vue-excel-editor v-model="tableData" v-if="tableData.length"  >
           <vue-excel-column
-            field="user"
-            label="User ID"
+            v-for="tableColumn in tableColumns"
+            :change="handleDataChange"
+            :key="tableColumn.key"
+            :field="tableColumn.key"
+            :label="tableColumn.title"
             type="string"
-            width="80px"
-          />
-          <vue-excel-column
-            field="name"
-            label="Name"
-            type="string"
-            width="150px"
-          />
-          <vue-excel-column
-            field="phone"
-            label="Contact"
-            type="string"
-            width="130px"
-          />
-          <vue-excel-column
-            field="gender"
-            label="Gender"
-            type="select"
-            width="50px"
-            :options="['F', 'M', 'U']"
-          />
-          <vue-excel-column
-            field="age"
-            label="Age"
-            type="number"
-            width="70px"
-          />
-          <vue-excel-column
-            field="birth"
-            label="Date Of Birth"
-            type="date"
-            width="80px"
           />
         </vue-excel-editor>
       </div>
@@ -110,16 +87,13 @@
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref, computed, toRaw } from "vue";
 import axios from "axios";
-import Vue3ExcelEditor from "vue3-excel-editor";
 
 const API_URL = "http://localhost:3000/api";
 
 export default {
-  components: {
-    Vue3ExcelEditor,
-  },
+
   setup() {
     const isLoggedIn = ref(false);
     const dbName = ref("");
@@ -136,6 +110,13 @@ export default {
         key,
       }));
     });
+
+    function printData() {
+      console.log("tableColumns: ", tableColumns.value);
+      console.log("tableData: ", tableData.value);
+      console.log("selectedTable: ", selectedTable.value);
+      console.log("tables: ", tables.value);
+    }
 
     async function login() {
       try {
@@ -187,14 +168,15 @@ export default {
       }
     }
 
-    async function handleDataChange(changes) {
+    async function handleDataChange(value, _prev, { $id, ...changedRow}, item) {  
+
       try {
-        await axios.post(`${API_URL}/update-data`, {
+         await axios.post(`${API_URL}/update-data`, {
           dbName: dbName.value,
           password: password.value,
           tableName: selectedTable.value,
-          updates: changes,
-        });
+          updates: [{...changedRow, [item.name]: value}]
+        }); 
       } catch (error) {
         alert(
           "Failed to update data: " + error.response?.data?.error ||
@@ -213,6 +195,11 @@ export default {
       randomNum.value = null;
     }
 
+    console.log("tableColumns: ", tableColumns.value);
+    console.log("tableData: ", tableData.value);
+    console.log("selectedTable: ", selectedTable.value);
+    console.log("tables: ", tables.value);
+
     return {
       isLoggedIn,
       dbName,
@@ -226,6 +213,7 @@ export default {
       logout,
       selectTable,
       handleDataChange,
+      printData,
     };
   },
 };

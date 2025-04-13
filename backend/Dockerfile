@@ -1,21 +1,41 @@
-# Použij oficiální Node.js image jako základ
-FROM node:18
+# === Build fáze ===
+FROM node:20-alpine AS builder
 
-# Nastav pracovní adresář v kontejneru
+# Instalujeme závislosti pro kompilaci (Python3, make, g++)
+RUN apk add --no-cache python3 make g++
+
+# Nastavíme pracovní adresář
 WORKDIR /app
 
-# Zkopíruj balíčky a nainstaluj závislosti
+# Zkopírujeme package.json a package-lock.json (nebo yarn.lock)
 COPY package*.json ./
+
+# Instalujeme závislosti (bez --production, protože budeme buildit)
 RUN npm install
 
-# Zkopíruj zbytek aplikace do kontejneru
+# Zkopírujeme zbytek aplikace
 COPY . .
 
-# Vytvoř adresář pro databáze
-RUN mkdir -p data
+# Buildíme TypeScript → JavaScript
+RUN npm run build
 
-# Vystav port (mělo by odpovídat tomu, který používáš v aplikaci)
+
+# === Production fáze ===
+FROM node:20-alpine AS runner
+
+# Nastavíme proměnné
+ENV NODE_ENV=production
+
+# Vytvoříme pracovní složku
+WORKDIR /app
+
+# Zkopírujeme jen to, co je potřeba pro běh
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
+# Exponujeme port (např. 3000)
 EXPOSE 3000
 
-# Spusť aplikaci
-CMD ["node", "index.js"]
+# Start příkaz – záleží na tom, co máš v package.json
+CMD ["node", "dist/server.js"]

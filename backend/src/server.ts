@@ -105,11 +105,12 @@ app.post('/api/update-data', authenticateDB, (req: Request, res: Response) => {
         db.serialize(() => {
             db.run('BEGIN TRANSACTION');
             
-            updates.forEach(update => {
-                const setClauses = Object.keys(update.changes)
+            updates.forEach((update) => {
+                console.log(update);
+                const setClauses = Object.keys(update)
                     .map(key => `${key} = ?`)
                     .join(', ');
-                const values = [...Object.values(update.changes), update.id];
+                const values = [...Object.values(update), update.id];
                 
                 db.run(
                     `UPDATE ${tableName} SET ${setClauses} WHERE rowid = ?`,
@@ -127,7 +128,7 @@ app.post('/api/update-data', authenticateDB, (req: Request, res: Response) => {
         });
     } catch (error: any) {
         db.run('ROLLBACK');
-        res.status(500).json({ error: error?.message });
+        res.status(500).json({ error: error.message });
     } finally {
         db.close();
     }
